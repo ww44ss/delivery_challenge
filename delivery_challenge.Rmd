@@ -1,0 +1,72 @@
+---
+title: "Delivery_Challenge"
+author: "ww44ss"
+date: "Oct  2014"
+output: 
+html_document:
+    keep_md: true
+---
+
+```{r get_wd}
+
+
+getwd()
+
+delivery_data<-read.csv("delivery_data.csv")
+
+str(delivery_data)
+
+
+```
+
+
+###Frequency of Deliveries
+
+```{r frequency of deliveries, echo=TRUE, results='asis'}
+
+require(xtable)
+require(ggplot2)
+
+#find frequencies
+
+        deliveries <- as.data.frame(table(delivery_data$pickup_zipcode))
+
+        #rename columns descriptively
+        colnames(deliveries)<-c("pickup_zipcode", "freq")
+
+
+        deliveries$pickup_zipcode <- as.character(deliveries$pickup_zipcode)
+
+      
+
+
+##create the table output
+
+        #delivtable<-xtable(deliveries[sort(deliveries$pickup_zipcode),])
+        delivtable<-xtable(deliveries)
+        print(delivtable, type="html")
+
+
+##plot the data
+
+        ##save graphics parameters
+        original.parameters<-par()
+        #don't plot x axis as will use custom labels
+        par(xaxt="n")
+
+        #plot
+        plot(deliveries$freq, type="b", xlab="zipcode", ylab="deliveries")
+        #custom Axis
+        axis(1, at=1:length(deliveries$freq), labels=FALSE)
+        #use zipcode data as labels
+        text(seq(1, length(deliveries$freq), by=1), par("usr")[3] - 500, labels = deliveries$pickup_zipcode, srt = 90, pos = 1, xpd = TRUE)
+
+        #resent original graphical parameters
+        par(original.parameters)
+
+
+require(ggplot2)
+        
+
+
+```
