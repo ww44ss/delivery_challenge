@@ -14,13 +14,26 @@ getwd()
 
 delivery_data<-read.csv("delivery_data.csv")
 
+##clean data
+        ##data frame it
+        delivery_data<-as.data.frame(delivery_data)
+        #eliminate NA zipcodes
+        delivery_data<-delivery_data[!is.na(delivery_data$pickup_zipcode),]
+        ##ensure pruchase prices are finite
+        delivery_data<-delivery_data[!is.na(delivery_data$purchase_price),]
+        delivery_data<-delivery_data[delivery_data$purchase_price>0,]
+
 str(delivery_data)
 
 
 ```
 
 
+You have data on `r dim(delivery_data)[1]` transactions.  
+
 ###Frequency of Deliveries
+
+First plot the number of deliveries by zipcode.  
 
 ```{r frequency of deliveries, echo=TRUE, results='asis', fig.align='center'}
 
@@ -37,40 +50,75 @@ require(ggplot2)
 
         deliveries$pickup_zipcode <- as.character(deliveries$pickup_zipcode)
 
-      
 
-
-##create the table output
-
-        #delivtable<-xtable(deliveries[sort(deliveries$pickup_zipcode),])
-
-        deliveries<-deliveries[with(deliveries, order(-freq)),]        
-
-        delivtable<-xtable(t(deliveries[1:10,]))
-        print(delivtable, type="html", include.colnames=FALSE)
-
-        delivtable<-xtable(t(deliveries[11:20,]))
-        print(delivtable, type="html", include.colnames=FALSE)
-
+   
 ##plot the data
+        P1 <- ggplot(deliveries, aes(x=factor(pickup_zipcode), y=freq))+geom_point()
+        P1<- P1+xlab("zipcode")+ylab("deliveries")+ggtitle("Deliveries versus Zipcode")
+        P1<-P1+coord_flip() 
 
-        ##save graphics parameters
-        original.parameters<-par()
-        #don't plot x axis as will use custom labels
-        par(xaxt="n")
+        print(P1)
 
-        #plot
-        plot(deliveries$freq, type="b", xlab="zipcode", ylab="deliveries")
-        #custom Axis
-        axis(1, at=1:length(deliveries$freq), labels=FALSE)
-        #use zipcode data as labels
-        text(seq(1, length(deliveries$freq), by=1), par("usr")[3] - 500, labels = deliveries$pickup_zipcode, srt = 90, pos = 1, xpd = TRUE)
+      
+```
+The above shows the number of deliveries by zipcode. There's obviously substantial variation with the mean `r mean(deliveries$freq)` deliveries per zipcode and a standard deviation of `r sd(deliveries$freq)`.  
 
-        #resent original graphical parameters
-        par(original.parameters)
+The top zipcodes for deliveries are:  
 
+```{r "table of top zipcodes", results='asis', fig.align='center'}
+
+        ##create table output of top fifteen zip codes
+
+        ##sort data by deliveries
+        deliv_sorted<-deliveries[with(deliveries, order(-freq)),]        
+        ##create html table
+        delivtable<-xtable(t(deliv_sorted[1:15,]))
+        ##print it
+        print(delivtable, type="html", include.colnames=FALSE, html.table.attributes='class=mytable')
 
 
 ```
 
+<style>
+table.mytable {
+  border: 10px;
+  width: 80%;
+  font-size: 12px;
+  line-height: 20px;
+  font-family: 'Trebuchet MS';
+  font-weight: normal;
+  color: blue;
+}
+ 
+table.mytable tr:nth-child(2n+1) {
+/*  background: #E8F2FF; */
+  background: #FFFFFF;
+}
+</style>
 
+###Purchase Price by Zipcode
+
+```{r "mean deliveries", echo=FALSE, fig.align='center'}
+
+library(ggplot2)
+        P1 <- ggplot(delivery_data, aes(x=factor(pickup_zipcode), y=purchase_price))+geom_boxplot()
+        P1<- P1+xlab("zipcode")+ylab("purchase price")+ggtitle("Purchase Price versus Zipcode")
+        P1<-P1+coord_flip() + scale_y_log10()
+
+print(P1)
+
+require(plyr)
+        ##use plyr to pull data into zipcode bundled stats
+        purchase_stats<-ddply(delivery_data,~pickup_zipcode,summarise,mean_price=mean(purchase_price),median_price=median(purchase_price), max_price=max(purchase_price))
+
+        ##filter for complete cases
+        purchase_stats<-purchase_stats[!is.na(purchase_stats$pickup_zipcode),]
+
+        ##plot
+        P1 <- ggplot(purchase_stats, aes(x=factor(pickup_zipcode), y=median_price))+geom_point()
+        P1<- P1+xlab("zipcode")+ylab("purchase price")+ggtitle("Mean Purchase Price versus Zipcode")
+        P1<-P1+coord_flip()
+
+print(P1)
+
+```
