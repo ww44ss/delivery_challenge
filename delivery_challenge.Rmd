@@ -22,7 +22,7 @@ str(delivery_data)
 
 ###Frequency of Deliveries
 
-```{r frequency of deliveries, echo=TRUE, results='asis'}
+```{r frequency of deliveries, echo=TRUE, results='asis', fig.align='center'}
 
 require(xtable)
 require(ggplot2)
@@ -43,9 +43,14 @@ require(ggplot2)
 ##create the table output
 
         #delivtable<-xtable(deliveries[sort(deliveries$pickup_zipcode),])
-        delivtable<-xtable(deliveries)
-        print(delivtable, type="html")
 
+        deliveries<-deliveries[with(deliveries, order(-freq)),]        
+
+        delivtable<-xtable(t(deliveries[1:10,]))
+        print(delivtable, type="html", include.colnames=FALSE)
+
+        delivtable<-xtable(t(deliveries[11:20,]))
+        print(delivtable, type="html", include.colnames=FALSE)
 
 ##plot the data
 
@@ -65,8 +70,7 @@ require(ggplot2)
         par(original.parameters)
 
 
-require(ggplot2)
-        
-
 
 ```
+
+
