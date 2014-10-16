@@ -10,8 +10,6 @@ html_document:
 ```{r get_wd}
 
 
-getwd()
-
 delivery_data<-read.csv("delivery_data.csv")
 
 ##clean data
