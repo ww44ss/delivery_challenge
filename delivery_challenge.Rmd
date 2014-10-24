@@ -3,12 +3,13 @@ title: "Delivery_Challenge"
 author: "ww44ss"
 date: "Oct  2014"
 output: 
-html_document:
-    keep_md: true
+    html_document:
+        keep_md: true
 ---
 
-```{r get_wd}
+```{r "get data"}
 
+#if getwd()=="delivery_challenge" {} else {setwd("delivery_challenge")}
 
 delivery_data<-read.csv("delivery_data.csv")
 
@@ -21,7 +22,11 @@ delivery_data<-read.csv("delivery_data.csv")
         delivery_data<-delivery_data[!is.na(delivery_data$purchase_price),]
         delivery_data<-delivery_data[delivery_data$purchase_price>0,]
 
+##take a look at the structure and header of the data 
+
 str(delivery_data)
+
+head(delivery_data)
 
 
 ```
@@ -53,7 +58,7 @@ require(ggplot2)
 ##plot the data
         P1 <- ggplot(deliveries, aes(x=factor(pickup_zipcode), y=freq))+geom_point()
         P1<- P1+xlab("zipcode")+ylab("deliveries")+ggtitle("Deliveries versus Zipcode")
-        P1<-P1+coord_flip() 
+        P1<-P1+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
         print(P1)
 
@@ -74,6 +79,11 @@ The top zipcodes for deliveries are:
         ##print it
         print(delivtable, type="html", include.colnames=FALSE, html.table.attributes='class=mytable')
 
+        ##the next 15
+        delivtable<-xtable(t(deliv_sorted[15:30,]))
+        ##print it
+        print(delivtable, type="html", include.colnames=FALSE, html.table.attributes='class=mytable')
+
 
 ```
 
@@ -81,16 +91,11 @@ The top zipcodes for deliveries are:
 table.mytable {
   border: 10px;
   width: 80%;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 20px;
   font-family: 'Trebuchet MS';
   font-weight: normal;
-  color: blue;
-}
- 
-table.mytable tr:nth-child(2n+1) {
-/*  background: #E8F2FF; */
-  background: #FFFFFF;
+  color: black;
 }
 </style>
 
@@ -98,16 +103,26 @@ table.mytable tr:nth-child(2n+1) {
 
 ```{r "mean deliveries", echo=FALSE, fig.align='center'}
 
-library(ggplot2)
-        P1 <- ggplot(delivery_data, aes(x=factor(pickup_zipcode), y=purchase_price))+geom_boxplot()
+library(ggplot2)      #get ggplot library
+
+        ##create plot using violing and log scales
+        P1 <- ggplot(delivery_data, aes(x=factor(pickup_zipcode), y=purchase_price))+geom_violin(fill = "grey80", colour = "#3366FF")+scale_y_log10() #+geom_jitter(size=2, colour="blue", alpha=0.5)
+
+        ##label the plot
         P1<- P1+xlab("zipcode")+ylab("purchase price")+ggtitle("Purchase Price versus Zipcode")
-        P1<-P1+coord_flip() + scale_y_log10()
+        ##fix the x-axis
+        P1<-P1+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 print(P1)
+```
 
+```{r "zip code stats"}
 require(plyr)
         ##use plyr to pull data into zipcode bundled stats
+        ##some summary stats
         purchase_stats<-ddply(delivery_data,~pickup_zipcode,summarise,mean_price=mean(purchase_price),median_price=median(purchase_price), max_price=max(purchase_price))
+
+
 
         ##filter for complete cases
         purchase_stats<-purchase_stats[!is.na(purchase_stats$pickup_zipcode),]
@@ -118,5 +133,19 @@ require(plyr)
         P1<-P1+coord_flip()
 
 print(P1)
+
+```
+
+
+
+```{r "task two"}
+
+require(plyr)   ##get plyr library
+
+##Pull data appart for management table
+        purchase_stats_mgt<-ddply(delivery_data,~pickup_zipcode,summarise,less_than_60=nrow(subset(purchase_price <=60)),btw_60_and_120=nrow(subset(purchace_price>60.0&&purchase_price <=120)), above_120=nrow(subset(purchase_price>120)))
+
+
+purchase_stats_mgt
 
 ```
