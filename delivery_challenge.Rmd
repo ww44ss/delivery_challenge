@@ -7,9 +7,9 @@ output:
         keep_md: true
 ---
 
-```{r "get data"}
+```{r "get_data", echo=FALSE}
 
-#if getwd()=="delivery_challenge" {} else {setwd("delivery_challenge")}
+##This chunk gets the data and cleans it
 
 delivery_data<-read.csv("delivery_data.csv")
 
@@ -18,134 +18,167 @@ delivery_data<-read.csv("delivery_data.csv")
         delivery_data<-as.data.frame(delivery_data)
         #eliminate NA zipcodes
         delivery_data<-delivery_data[!is.na(delivery_data$pickup_zipcode),]
-        ##ensure pruchase prices are finite
+        ##ensure purchase prices are finite
         delivery_data<-delivery_data[!is.na(delivery_data$purchase_price),]
-        delivery_data<-delivery_data[delivery_data$purchase_price>0,]
+        
+        ##I comment out the row below to get the accepted answer to teh question
 
-##take a look at the structure and header of the data 
+        #delivery_data<-delivery_data[delivery_data$purchase_price>0,]
 
-str(delivery_data)
+        str(delivery_data) ##examine the data structure 
 
-head(delivery_data)
+        head(delivery_data[,c(1:2,5)])  ##look at the first few rows of interesting columns
 
 
 ```
 
+##Deliveries per Zipcode
 
-You have data on `r dim(delivery_data)[1]` transactions.  
+```{r "deliveries per zipcode", echo=TRUE, results='asis', fig.align='center'}
 
-###Frequency of Deliveries
-
-First plot the number of deliveries by zipcode.  
-
-```{r frequency of deliveries, echo=TRUE, results='asis', fig.align='center'}
+##This seciton counts deliveries by zipcode and plots the result
 
 require(xtable)
 require(ggplot2)
 
 #find frequencies
 
+        ##Grab the zipcode data and use table to count
         deliveries <- as.data.frame(table(delivery_data$pickup_zipcode))
 
         #rename columns descriptively
         colnames(deliveries)<-c("pickup_zipcode", "freq")
 
-
+        ##Put zipcodes as characters for later use
         deliveries$pickup_zipcode <- as.character(deliveries$pickup_zipcode)
-
-
    
-##plot the data
-        P1 <- ggplot(deliveries, aes(x=factor(pickup_zipcode), y=freq))+geom_point()
-        P1<- P1+xlab("zipcode")+ylab("deliveries")+ggtitle("Deliveries versus Zipcode")
-        P1<-P1+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        ##plot the data
+        P1 <- ggplot(deliveries, aes(x=factor(pickup_zipcode), y=freq))
+        P1<- P1+geom_point(size=4, colour="blue", alpha=.7)  ##point aesthetics
+        P1<- P1+xlab("zipcode")+ylab("deliveries")+ggtitle("Deliveries versus Zipcode (All)")
+        P1<- P1+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
+##print the plot of deliveries per zipcode
         print(P1)
 
       
 ```
-The above shows the number of deliveries by zipcode. There's obviously substantial variation with the mean `r mean(deliveries$freq)` deliveries per zipcode and a standard deviation of `r sd(deliveries$freq)`.  
 
-The top zipcodes for deliveries are:  
+##Top-Delivery Zipcodes
 
-```{r "table of top zipcodes", results='asis', fig.align='center'}
+```{r "table of top zipcodes", fig.align='center', echo="false"}
 
-        ##create table output of top fifteen zip codes
+        ##create table output of top zip codes
 
         ##sort data by deliveries
-        deliv_sorted<-deliveries[with(deliveries, order(-freq)),]        
-        ##create html table
-        delivtable<-xtable(t(deliv_sorted[1:15,]))
-        ##print it
-        print(delivtable, type="html", include.colnames=FALSE, html.table.attributes='class=mytable')
+        deliv_sorted<-deliveries[with(deliveries, order(-freq)),]       ##sort by order frequency 
+        ##this next part has to do with the behavior of R
+                ##First have to conver the data back from character to integer
+                ##and then bind individual columns together again.
+                deliv_sorted<-cbind(as.integer(deliv_sorted$pickup_zipcode), as.integer(deliv_sorted$freq))
+        ##assign column names      
+        colnames(deliv_sorted)<-c("pickup_zipcode", "number_deliveries")  
+        ##turn into a data frame
+        deliv_sorted<-as.data.frame(deliv_sorted)
 
-        ##the next 15
-        delivtable<-xtable(t(deliv_sorted[15:30,]))
-        ##print it
-        print(delivtable, type="html", include.colnames=FALSE, html.table.attributes='class=mytable')
+        print(deliv_sorted, row.names=FALSE)
 
 
 ```
 
-<style>
-table.mytable {
-  border: 10px;
-  width: 80%;
-  font-size: 14px;
-  line-height: 20px;
-  font-family: 'Trebuchet MS';
-  font-weight: normal;
-  color: black;
-}
-</style>
 
-###Purchase Price by Zipcode
+###Filter for High Delivery ZipCodes > 200
+```{r}
+
+##This seciton first subsets the sorted zipcodes by delivery data (deliv_sorted) 
+##for instances greater than 200,
+##then creates a table fo those zipcodes
+##and subsets the original data based on that set
+##it results the data a delivery_data2
+
+        ##Filter the data
+        deliv_sorted2<-deliv_sorted[deliv_sorted$number_deliveries>200,]
+
+        ##Subset the data
+
+        delivery_data2<-delivery_data[delivery_data$pickup_zipcode %in% deliv_sorted2$pickup_zipcode,]
+
+```
+
+##Zipcode and Price Volume Correlation  
+
+```{r "task two", echo=FALSE}
+
+##This chunk of code leverages the plyr package in R
+##It basically pulls he data apart by zipcode and then summarizes (counts) 
+##the data falling within specific ranges
+
+require(plyr)   ##require plyr library
+
+##Pull data apart for management table
+        purchase_stats_mgt<-ddply(delivery_data2,"pickup_zipcode",
+                        summarise,
+                        less_than_60=length(purchase_price[purchase_price<=60.0001]),  ##select purchase price
+                        btw_60_and_120=length(purchase_price[purchase_price>60.0001 & purchase_price<=120.001]),
+                        above_120=length(purchase_price[purchase_price > 120.001]))
+
+
+print(purchase_stats_mgt, row.names=FALSE)
+
+```
+
+###
+
+###Plot of Purchase Price Data by Zipcode
 
 ```{r "mean deliveries", echo=FALSE, fig.align='center'}
 
 library(ggplot2)      #get ggplot library
 
         ##create plot using violing and log scales
-        P1 <- ggplot(delivery_data, aes(x=factor(pickup_zipcode), y=purchase_price))+geom_violin(fill = "grey80", colour = "#3366FF")+scale_y_log10() #+geom_jitter(size=2, colour="blue", alpha=0.5)
+        P1 <- ggplot(delivery_data2, aes(x=factor(pickup_zipcode), y=purchase_price))
 
-        ##label the plot
-        P1<- P1+xlab("zipcode")+ylab("purchase price")+ggtitle("Purchase Price versus Zipcode")
-        ##fix the x-axis
-        P1<-P1+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        P1<-P1+geom_violin(fill = "grey80", colour = "#3366FF")  ##set aesthetic colors
+
+        P1<-P1+scale_y_log10(breaks=c(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000),
+                             labels=c(1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000))   ##add log scale and labels
+
+        P1<-P1+coord_cartesian(ylim = c(1, 5000))       
+
+        P1<- P1+xlab("zipcode")+ylab("purchase price")+ggtitle("Purchase Price versus Zipcode")   ##label the plot
+       
+        P1<-P1+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))  ##fix the x-axis
 
 print(P1)
 ```
 
-```{r "zip code stats"}
-require(plyr)
-        ##use plyr to pull data into zipcode bundled stats
+This plot is really informative.
+
+###Purchase Price Statistics by Zip Code  
+
+```{r "zip_code_stats", echo=FALSE}
+require(plyr)   #require plyr
+
+        ##use plyr to pull data into zipcode bundled stats 
+
         ##some summary stats
-        purchase_stats<-ddply(delivery_data,~pickup_zipcode,summarise,mean_price=mean(purchase_price),median_price=median(purchase_price), max_price=max(purchase_price))
-
-
+        purchase_stats<-ddply(delivery_data2,~pickup_zipcode,
+                              summarise,
+                              mean_price=mean(purchase_price), ##calculate mean
+                              median_price=median(purchase_price),
+                              max_price=max(purchase_price))
 
         ##filter for complete cases
         purchase_stats<-purchase_stats[!is.na(purchase_stats$pickup_zipcode),]
 
         ##plot
-        P1 <- ggplot(purchase_stats, aes(x=factor(pickup_zipcode), y=median_price))+geom_point()
-        P1<- P1+xlab("zipcode")+ylab("purchase price")+ggtitle("Mean Purchase Price versus Zipcode")
-        P1<-P1+coord_flip()
+        P2<- ggplot(purchase_stats, aes(x=factor(pickup_zipcode), y=median_price))
+        P2<- P2+geom_bar(stat="identity",colour="blue", alpha=.4, width=0.6)
+        P2<- P2+xlab("Zipcode")+ylab("Price")
+        P2<- P2+ggtitle("Median Purchase Price versus Zipcode")
+        P2<- P2+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
-print(P1)
-
-```
-
-
-
-```{r "task two"}
-
-require(plyr)   ##get plyr library
-
-##Pull data appart for management table
-        purchase_stats_mgt<-ddply(delivery_data,~pickup_zipcode,summarise,less_than_60=nrow(subset(purchase_price <=60)),btw_60_and_120=nrow(subset(purchace_price>60.0&&purchase_price <=120)), above_120=nrow(subset(purchase_price>120)))
-
-
-purchase_stats_mgt
+P2
 
 ```
+
