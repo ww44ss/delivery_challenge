@@ -178,6 +178,7 @@ require(plyr)   #require plyr
         P2<- P2+ggtitle("Median Purchase Price versus Zipcode")
         P2<- P2+theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
+##print the output
 P2
 
 ```
